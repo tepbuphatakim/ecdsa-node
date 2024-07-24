@@ -33,6 +33,13 @@ app.post("/send", (req, res) => {
   }
 });
 
+app.post("/account", (req, res) => {
+  const { address } = req.body;
+  // DEV: Airdrop 100 to newly address created.
+  balances[address] = 100;
+  res.send({ address, balance: balances[address] });
+});
+
 app.listen(port, () => {
   console.log(`Listening on port ${port}!`);
 });
