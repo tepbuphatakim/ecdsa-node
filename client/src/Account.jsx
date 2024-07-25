@@ -5,24 +5,35 @@ import { getRandomBytesSync } from 'ethereum-cryptography/random.js';
 import { toHex } from 'ethereum-cryptography/utils.js';
 import { keccak256 } from 'ethereum-cryptography/keccak';
 
-function Account() {
-  const [publicKey, setPublicKey] = useState('');
-  const [privateKey, setPrivateKey] = useState('');
-
+function Account({ account, setAccount }) {
   async function createAccount() {
     // DEV: Client side generate of private key thus server have 0 knowledge of.
-    const privKey = getRandomBytesSync(32);
-    const privKeyHex = toHex(privKey);
-    const pubKeyHex = toHex(secp256k1.getPublicKey(privKey, true));
-    setPrivateKey(privKeyHex);
-    setPublicKey(pubKeyHex);
-
     const {
-      data: { address, balance },
-    } = await server.post('account', {
-      address: pubKeyHex,
+      address,
+      pubKeyHex: publicKey,
+      privKeyHex: privateKey,
+    } = generateKey();
+    setAccount({ address, publicKey, privateKey });
+
+    await server.post('account', {
+      address,
     });
-    console.log(address, balance);
+  }
+
+  function generateKey() {
+    const privKey = getRandomBytesSync(32);
+    const pubKey = secp256k1.getPublicKey(privKey, true);
+    const privKeyHex = toHex(privKey);
+    const pubKeyHex = toHex(pubKey);
+    const address = getAddress(pubKey);
+    return { address, pubKeyHex, privKeyHex };
+  }
+
+  function getAddress(publicKey) {
+    // DEV: ETH style address derive.
+    const hash = keccak256(publicKey);
+    const address = hash.slice(-20);
+    return `0x${toHex(address)}`;
   }
 
   return (
@@ -34,9 +45,9 @@ function Account() {
         value="Transfer"
         onClick={createAccount}
       />
-
-      <div className="balance">Public key: {publicKey}</div>
-      <div className="balance">Private key: {privateKey}</div>
+      <div className="balance">Address: {account.address}</div>
+      <div className="balance">Public key: {account.publicKey}</div>
+      <div className="balance">Private key: {account.privateKey}</div>
     </div>
   );
 }
