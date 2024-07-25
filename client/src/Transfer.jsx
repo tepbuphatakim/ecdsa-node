@@ -29,6 +29,7 @@ function Transfer({ address, setBalance, account }) {
       const jsonString = JSON.stringify(signature, (key, value) =>
         typeof value === 'bigint' ? value.toString() : value
       );
+      console.log('test');
 
       const {
         data: { balance },
