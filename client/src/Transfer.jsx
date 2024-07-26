@@ -26,7 +26,7 @@ function Transfer({ address, setBalance, account }) {
       const {
         data: { balance },
       } = await server.post(`send`, {
-        ...tx,
+        transaction: tx,
         signature: toHex(utf8ToBytes(serializeBigIntObj(signature))),
       });
       setBalance(balance);
