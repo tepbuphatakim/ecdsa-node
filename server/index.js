@@ -1,6 +1,11 @@
-const express = require("express");
+import express from "express";
+import cors from "cors";
+import { keccak256 } from "ethereum-cryptography/keccak";
+import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
+import { hexToBytes, toHex, utf8ToBytes } from "ethereum-cryptography/utils.js";
+import { parseBigIntObj } from "./utils/serialize.js";
+
 const app = express();
-const cors = require("cors");
 const port = 3042;
 
 app.use(cors());
@@ -19,20 +24,25 @@ app.get("/balance/:address", (req, res) => {
 });
 
 app.post("/send", (req, res) => {
-  const {
-    transaction: { sender, recipient, amount },
-  } = req.body;
-
+  const { transaction, signature } = req.body;
+  const { sender, recipient, amount, publicKey } = transaction;
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
-  if (balances[sender] < amount) {
-    res.status(400).send({ message: "Not enough funds!" });
-  } else {
-    balances[sender] -= amount;
-    balances[recipient] += amount;
-    res.send({ balance: balances[sender] });
+  const txHash = keccak256(utf8ToBytes(JSON.stringify(transaction)));
+  const signatureUtf8 = new TextDecoder().decode(hexToBytes(signature));
+  const signatureObj = parseBigIntObj(signatureUtf8);
+  const validSignature = secp256k1.verify(signatureObj, txHash, publicKey);
+  if (!validSignature) {
+    return res.status(400).send({ message: "Invalid signature." });
   }
+  if (balances[sender] < amount) {
+    return res.status(400).send({ message: "Not enough funds!" });
+  }
+
+  balances[sender] -= amount;
+  balances[recipient] += amount;
+  return res.send({ balance: balances[sender] });
 });
 
 app.post("/account", (req, res) => {

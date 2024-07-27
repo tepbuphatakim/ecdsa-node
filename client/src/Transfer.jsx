@@ -22,7 +22,7 @@ function Transfer({ address, setBalance, account }) {
       };
       const txHash = keccak256(utf8ToBytes(JSON.stringify(tx)));
       const signature = secp256k1.sign(txHash, hexToBytes(account.privateKey));
-
+      
       const {
         data: { balance },
       } = await server.post(`send`, {
