@@ -16,6 +16,15 @@ const balances = {
   "0x2": 50,
   "0x3": 75,
 };
+// DEV: Basic nonce to prevent replay attacks of transaction.
+// Since digital signature provide proof of authenticate the
+// address/public key without the knowledge of private key but
+// attacker can still used the valid signature of previous
+// transaction to re-send to the transaction which is called
+// 'replay attack'. This nonce will prevent this by ensure each
+// transaction has unique nonce attach to the transaction validate
+// by the nonce.
+const nonces = [];
 
 app.get("/balance/:address", (req, res) => {
   const { address } = req.params;
@@ -23,9 +32,13 @@ app.get("/balance/:address", (req, res) => {
   res.send({ balance });
 });
 
+app.get("/nonce", (req, res) => {
+  res.send({ nonce: nonces.length });
+});
+
 app.post("/send", (req, res) => {
   const { transaction, signature } = req.body;
-  const { sender, recipient, amount, publicKey } = transaction;
+  const { sender, recipient, amount, publicKey, nonce } = transaction;
   setInitialBalance(sender);
   setInitialBalance(recipient);
 
@@ -36,12 +49,18 @@ app.post("/send", (req, res) => {
   if (!validSignature) {
     return res.status(400).send({ message: "Invalid signature." });
   }
+  if (nonces.includes(nonce)) {
+    return res
+      .status(400)
+      .send({ message: "Transaction mark as replay attack!" });
+  }
   if (balances[sender] < amount) {
     return res.status(400).send({ message: "Not enough funds!" });
   }
 
   balances[sender] -= amount;
   balances[recipient] += amount;
+  nonces.push(nonce);
   return res.send({ balance: balances[sender] });
 });
 
