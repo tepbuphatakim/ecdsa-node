@@ -14,11 +14,13 @@ function Transfer({ address, setBalance, account }) {
     evt.preventDefault();
 
     try {
+      const { data: { nonce } } = await server.get('nonce')
       const tx = {
         publicKey: account.publicKey,
         sender: address,
         amount: parseInt(sendAmount),
         recipient,
+        nonce,
       };
       const txHash = keccak256(utf8ToBytes(JSON.stringify(tx)));
       const signature = secp256k1.sign(txHash, hexToBytes(account.privateKey));
